@@ -1,25 +1,54 @@
-import { View, Text, ActivityIndicator, ScrollView, Image, StyleSheet, TouchableOpacity } from "react-native";
-import { useState, useEffect, useContext } from "react";
+import { View, Text, ActivityIndicator, Image, StyleSheet, FlatList, Pressable, Animated, ImageBackground, TextInput, Keyboard, ScrollView } from "react-native";
+import { useState, useEffect, useContext, useRef } from "react";
 import * as rssParser from 'react-native-rss-parser'
 import { LinearGradient } from 'expo-linear-gradient';
 import TrackPlayer from "react-native-track-player";
+import { scaleAnimation } from '../../../animations/scale'
+import { AntDesign } from '@expo/vector-icons';
+import { FontAwesome } from '@expo/vector-icons';
+import SkeletonPlaceHolderPodcast from '../../../components/SkeletonPlaceHolderPodcast'
 
 
 const EpisodeList = ({navigation}) => {
-
     const [isLoading, setIsLoading] = useState(true)
+    const [isLoadingPagination, setIsLoadingPagination] = useState(false)
+    const [pageCurrent, setPageCurrent] = useState(1)
     const [errorMessage, setErrorMessage] = useState(null)
+
+    const [searchText, setSearchText] = useState('')
     const [episodes,setEpisodes] = useState([])
+    const [DATA, setDATA] = useState([])
+
+    const animateX = useRef(new Animated.Value(1)).current;
+    const [itemAnimate, setItemAnimate] = useState(null);
 
     const getPodcasts = async() => {
-        //const response = await fetch(`https://anchor.fm/s/dea812c/podcast/rss`)
         const RSS_URL = `https://anchor.fm/s/dea812c/podcast/rss`;
         try {
             const response = await fetch(RSS_URL)
             const responseData = await response.text()
             const data = await rssParser.parse(responseData)
-            setEpisodes(data.items)
+            
+            setEpisodes(                
+                data.items.map((episode, index) => {
+                    return {
+                    key: episode.id,
+                    episodeObject: episode,
+                    episodeID: index
+                    }
+                })
+              )
+
             setPlaylistPodcast(data.items)
+            setDATA(
+                data.items.map((episode, index) => {
+                  return {
+                    key: episode.id,
+                    episodeObject: episode,
+                    episodeID: index
+                  }
+                })
+              )
         } catch(e) {
             console.log('Erro:',e)
         } 
@@ -93,44 +122,103 @@ const EpisodeList = ({navigation}) => {
         getPodcasts();
     },[])
 
-    if(isLoading){
-        return (
-            <View style={{flex:1,justifyContent:'center',alignItems:'center'}}>
-              <ActivityIndicator size="large" color="#008037" />
-            </View>
-        )
-    }
+    useEffect(() => {
+        if(searchText=='') {
+            setEpisodes(DATA)
+        } else {
+            setEpisodes(
+                DATA.filter(item => {
+                    if(item.episodeObject.title.toLowerCase().indexOf(searchText.toLocaleLowerCase()) > -1) {
+                        return true
+                    } else {
+                        return false
+                    }
+                })
+            )
+        }
+    },[searchText])
 
     return ( 
-        <View>
+        <View style={{flex:1,backgroundColor:'white', }}>
+            <Pressable style={{flex:1}} onPress={Keyboard.dismiss}>
             {errorMessage && <Text>{errorMessage}</Text>}
-            <ScrollView>
-                {!errorMessage && episodes.map((episode, index) => {
-                    const htmlEP = episode.description;
-                    if(index>10) return 
-                    return (
-                        <TouchableOpacity key={episode.id} onPress={() => {
-                        navigation.navigate('Episode',{
-                            episodeObject: episode,
-                            episodeName: episode.title,
-                            episodeID: index
-                        })}}>
-                            <LinearGradient colors={['#008037', '#00662c']} style={styles.episodeContainer}>
-                                <View style={styles.imageEpisodeContainer}>
-                                    <Image style={styles.imageEpisode} source={{uri: episode.itunes.image}} />
+            <View style={{padding:10,alignItems:'center', marginTop:20,}}>
+                <View style={{padding:5, borderRadius: 5, backgroundColor: '#F6F7F2', width:200, flexDirection:'row', justifyContent:'center', alignItems:'center'}}>
+                    <FontAwesome name="search" style={{paddingLeft:5,paddingRight:10}} size={17} color="#323232" />
+                    <TextInput
+                        value={searchText}
+                        onChangeText={setSearchText}
+                        style={{width:150, color:'#323232'}}
+                        placeholder='Pesquisar...'
+                        placeholderTextColor={'#C1C1C1'}
+                    />
+                </View>
+            </View>
+            
+            {!errorMessage && isLoading ? 
+           <SkeletonPlaceHolderPodcast />
+            : 
+            <Animated.FlatList
+            data={episodes}
+            keyExtractor={item => item.key}
+            contentContainerStyle={{
+              padding:10,
+              paddingBottom:80
+            }}
+            removeClippedSubviews={false}
+            initialNumToRender={10}
+            maxToRenderPerBatch={10}
+            getItemLayout={(data, index) => (
+                {length: 175, offset: 175 * index, index}
+              )}
+            renderItem={({item, index}) => {
+              return <Animated.View
+                style={{ borderRadius:12,marginBottom:10,
+                shadowColor:'#000',
+                shadowOffset: {
+                  width: 0,
+                  height:10
+                },
+                shadowOpacity:1,
+                shadowRadius:20,
+                elevation:10,
+                borderWidth:1,
+                borderColor: 'rgba(255,255,255,0)',
+                transform:[{scale: (itemAnimate == item.key) ? animateX : 1}]
+                }}
+              >
+              <Pressable onPressIn={() => setItemAnimate(item.key)} onPress={() =>{ 
+              scaleAnimation(animateX,() => {
+                navigation.navigate('Episode',{
+                    episodeObject: item.episodeObject,
+                    episodeName: item.episodeObject.title,
+                    episodeID: item.episodeID,
+                    trackLength: DATA.length
+                })
+              })}}>
+                <ImageBackground imageStyle={{borderRadius:12,resizeMode:'center'}} style={styles.imageBackground} source={{uri: item.episodeObject.itunes.image}}>
+                    <LinearGradient locations={[0, 0.8]} colors={['transparent', 'rgba(0, 128, 55, .6)']} style={styles.episodeContainer}>
+                            <View style={{height:'100%',flexDirection:'row',paddingBottom:5}}>
+                                <View style={{flex:7, justifyContent:'flex-end'}}>
+                                    <Text style={{fontSize:17,fontWeight:'700',color:'white'}}>{
+                                        (item.episodeObject.title.indexOf('-')!=-1) ? item.episodeObject.title.split('- ')[1] : 
+                                        item.episodeObject.title
+                                    }</Text>
+                                    <Text style={{fontSize:12,color:'white',}}>{weekDay(item.episodeObject.published)}</Text>
+                                    <Text  style={{fontSize:12,color:'white',}}>{secondsToHms(item.episodeObject.itunes.duration)}</Text>
                                 </View>
-                                <View style={styles.episodeInfo}>
-                                    <Text style={styles.episodeTitle}>{episode.title}</Text>
-                                    <Text style={styles.episodePublished}>
-                                        {weekDay(episode.published)}
-                                    </Text>
-                                    <Text style={styles.episodeDuration}>{secondsToHms(episode.itunes.duration)}</Text>
+                                <View style={{flex:1, justifyContent:'flex-end',padding:10}}>
+                                    <AntDesign name="play" size={36} color="white" />
                                 </View>
-                            </LinearGradient>
-                        </TouchableOpacity>
-                    )
-                })}
-            </ScrollView>
+                            </View>
+                    </LinearGradient>
+                </ImageBackground>
+                </Pressable>
+              </Animated.View>
+              
+            }}
+        />}
+          </Pressable>
         </View>
      );
 }
@@ -138,38 +226,14 @@ const EpisodeList = ({navigation}) => {
 export default EpisodeList;
 
 const styles = StyleSheet.create({
+    imageBackground: {
+        height:170,
+        backgroundColor: 'black',
+        borderRadius:12,
+    },
     episodeContainer:{
-        flexDirection:'row',
-        margin:10,
-        paddingRight:5,
-        borderRadius:5,
-        height:100,
-    },
-    imageEpisodeContainer:{
-        justifyContent:'center',
-        flex:1,
-    },
-    imageEpisode:{
-        width:80,
+        padding:10,
         height:'100%',
-        borderTopLeftRadius:5,
-        borderBottomLeftRadius:5,
-      },
-      episodeInfo:{
-          justifyContent:'center',
-          flex:3,
-          paddingLeft:5,
-      },
-      episodeTitle:{
-          color:'white',
-          fontWeight:'bold',
-      },
-      episodeDuration:{
-          color:'white',
-          fontSize:10,
-      },
-      episodePublished:{
-          color:'white',
-          fontSize:10,
-      }
+        borderRadius:12,
+    }
 })

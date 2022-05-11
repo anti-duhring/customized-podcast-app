@@ -44,12 +44,13 @@ useEffect(() => {
 
   return (
     <PlayerContextProvider>
+
+      <NavigationContainer>
       <StatusBar
         animated={true}
         backgroundColor="#008037"
         style='light'
       />
-      <NavigationContainer>
         <Drawer.Navigator useLegacyImplementation>
           <Drawer.Screen name="Home" component={Home} />
           <Drawer.Screen name="Podcast" component={Podcast} options={{headerShown:false}} />
