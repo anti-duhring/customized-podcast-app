@@ -32,7 +32,7 @@ const Podcast = ({navigation}) => {
 export default Podcast;
 
 const styles = StyleSheet.create({
-    goBackButton:{
+    goBackButton:{ 
       marginRight:5,
       backgroundColor:'white',
       padding:10,
