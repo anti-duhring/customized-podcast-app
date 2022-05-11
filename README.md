@@ -2,8 +2,9 @@
 An app dedicated to your own podcast, with several screens and a track player inside the notification bar.
 
 ## Funcionality
+<img src="https://user-images.githubusercontent.com/99638905/167955256-5ce12403-aea2-43a8-ba1a-b78aa0cae288.gif" width="400"  />
 
-<img src="https://user-images.githubusercontent.com/99638905/167239558-94a338f9-bd71-4a1d-89a3-5f39b6467e68.gif" width="400"  />
+<img src="https://user-images.githubusercontent.com/99638905/167955267-c52d38ac-8967-4e32-95ac-b605b1e3f2cd.gif" width="400"  />
 
 ## Technology 
 - [react-native-track-player](https://react-native-track-player.js.org/)
